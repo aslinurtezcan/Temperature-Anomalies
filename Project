@@ -1,0 +1,43 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Veriyi yükleme
+file_path = 'MLTempDataset.csv'
+
+# CSV dosyasını yükle
+data = pd.read_csv(file_path)
+
+# Datetime sütununu zaman serisine dönüştürme
+data['Datetime'] = pd.to_datetime(data['Datetime'])
+
+# Datetime sütununu indeks olarak ayarlayalım
+data.set_index('Datetime', inplace=True)
+
+# Sıcaklık verisini içeren sütunun adını daha anlamlı hale getirelim
+data.rename(columns={'DAYTON_MW': 'Temperature'}, inplace=True)
+
+# Z-score hesaplama
+data['z_score'] = (data['Temperature'] - data['Temperature'].mean()) / data['Temperature'].std()
+
+# Z-skoru 2'den büyük olanları anomali olarak kabul edelim
+z_threshold = 2
+z_score_anomalies = data[data['z_score'].abs() > z_threshold]
+
+# Anomalileri text dosyasına yazdırma
+anomaly_file_path = r'C:\Kullanıcılar\aslin\Desktop\anomalies.txt'
+
+with open(anomaly_file_path, 'w') as f:
+    f.write("Anomaly Datetime and Temperature Values:\n")
+    for index, row in z_score_anomalies.iterrows():
+        f.write(f"{index}: {row['Temperature']}\n")
+
+# Z-score ile tespit edilen anomalileri görselleştirelim
+plt.figure(figsize=(10,6))
+plt.plot(data['Temperature'], label='Temperature', color='blue')
+plt.scatter(z_score_anomalies.index, z_score_anomalies['Temperature'], color='red', label='Z-Score Anomalies')
+plt.title('Temperature Data with Z-Score Anomalies (Threshold = 2)')
+plt.xlabel('Datetime')
+plt.ylabel('Temperature (°C)')
+plt.legend()
+plt.show()
